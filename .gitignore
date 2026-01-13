@@ -1,0 +1,15 @@
+# 機密情報（絶対にアップロードしない）
+.env
+
+# Pythonの実行用一時ファイル
+__pycache__/
+*.pyc
+
+# 仮想環境（もし作成している場合）
+.venv/
+venv/
+env/
+
+# OSが生成するゴミファイル
+.DS_Store
+Thumbs.db

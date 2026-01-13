@@ -22,13 +22,15 @@ def handle_summarize(ack, respond, command):
     ack("検索と要約を開始します。少々お待ちください...")
     
     query = command['text']
+    channel_id = command['channel_id']
+
     user_token = os.environ["SLACK_USER_TOKEN"]
 
     try:
         # 1. ユーザー権限で検索
         search_res = app.client.search_messages(
             token=user_token, 
-            query=query, 
+            query=f"{query} in:{channel_id}", 
             sort="timestamp", 
             sort_dir="asc",
             count=20
@@ -115,6 +117,8 @@ def list_channels(ack, respond):
 @app.command("/ask")
 def handle_ask_command(ack, respond, command):
     user_instruction = command['text']
+    channel_id = command['channel_id']
+
     ack(f"📝 「{user_instruction}」を分析中。多角的にログを探索しています...")
     user_token = os.environ["SLACK_USER_TOKEN"]
 
@@ -133,7 +137,12 @@ def handle_ask_command(ack, respond, command):
 
         # --- ステップ2：二段構えの検索ロジック ---
         # 1回目：AI最適化クエリ
-        search_res = app.client.search_messages(token=user_token, query=optimized_query, count=50, sort="timestamp")
+        search_res = app.client.search_messages(
+            token=user_token, 
+            query=f"{optimized_query} in:{channel_id}", 
+            count=50, 
+            sort="timestamp"
+            )
         matches = search_res.get('messages', {}).get('matches', [])
 
         # 2回目：もしヒットが少なければ、ユーザーの入力そのままで追加検索（フォールバック）

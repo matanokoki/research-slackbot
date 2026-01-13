@@ -36,7 +36,7 @@ def handle_summarize(ack, respond, command):
         # 1回目：AI最適化クエリ
         search_res = app.client.search_messages(
             token=user_token, 
-            query=f"{optimized_query} in:{channel_id}", 
+            query=f"in:{channel_id} {optimized_query} ", 
             count=50, sort="timestamp", sort_dir="asc"
         )
         matches = search_res.get('messages', {}).get('matches', [])
@@ -45,7 +45,7 @@ def handle_summarize(ack, respond, command):
         if not matches:
             search_res_raw = app.client.search_messages(
                 token=user_token, 
-                query=f"{user_input} in:{channel_id}", 
+                query=f"in:{channel_id} {user_input}", 
                 count=50, sort="timestamp", sort_dir="asc"
             )
             matches = search_res_raw.get('messages', {}).get('matches', [])
@@ -75,6 +75,10 @@ def handle_summarize(ack, respond, command):
         - 結論や決定事項を優先して書く。
         - 箇条書きを使い、各項目の末尾には提供された <URL|[リンク]> をそのまま付与する。
         - リンクの書式 <https://...|[リンク]> は絶対に変更しない。
+
+        【重要】
+        提供された会話ログは、すべて現在のチャンネル内のものです。
+        これ以外の情報は一切考慮せず、このログの中にある事実のみを回答してください。
 
         【Slack表示用・絶対禁止ルール】
         1. **（アスタリスク2つ）は禁止。太字は必ず *テキスト* （アスタリスク1つ）で囲んでください。
@@ -124,7 +128,7 @@ def handle_ask_command(ack, respond, command):
     user_instruction = command['text']
     channel_id = command['channel_id']
 
-    ack(f"📝 「{user_instruction}」を分析中。多角的にログを探索しています...")
+    ack(f"「{user_instruction}」を分析中。多角的にログを探索しています...")
     user_token = os.environ["SLACK_USER_TOKEN"]
 
     try:
@@ -144,7 +148,7 @@ def handle_ask_command(ack, respond, command):
         # 1回目：AI最適化クエリ
         search_res = app.client.search_messages(
             token=user_token, 
-            query=f"{optimized_query} in:{channel_id}", 
+            query=f"in:{channel_id} {optimized_query}", 
             count=50, 
             sort="timestamp"
             )
@@ -152,7 +156,12 @@ def handle_ask_command(ack, respond, command):
 
         # 2回目：もしヒットが少なければ、ユーザーの入力そのままで追加検索（フォールバック）
         if len(matches) < 5:
-            search_res_raw = app.client.search_messages(token=user_token, query=user_instruction, count=50, sort="timestamp")
+            search_res_raw = app.client.search_messages(
+                token=user_token, 
+                query=f"in:{channel_id} user_instruction", 
+                count=50, 
+                sort="timestamp"
+                )
             matches += search_res_raw.get('messages', {}).get('matches', [])
 
         if not matches:
@@ -186,6 +195,10 @@ def handle_ask_command(ack, respond, command):
         2. 文脈把握: 議論の結論が出ていない場合は、その旨を伝える。
         3. センスの向上: 箇条書きを使い、上司が10秒で理解できる構造にする。
         4. 証拠提示: 証拠元があるものには主張にurlを添える。
+
+        【重要】
+        提供された会話ログは、すべて現在のチャンネル内のものです。
+        これ以外の情報は一切考慮せず、このログの中にある事実のみを回答してください。
 
          【Slack表示用・絶対禁止ルール】
         1. **（アスタリスク2つ）は禁止。太字は必ず *テキスト* （アスタリスク1つ）で囲んでください。

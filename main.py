@@ -156,7 +156,7 @@ def handle_ask_command(ack, respond, command):
                     # AIがURLをいじれないよう、この文字列全体を「1つの引用符」として扱わせる
                     # [link:URL] という形式でAIに渡し、そのまま出力させます
                     link_tag = f"<{url}|[元の会話を表示]>"
-                    context_data.append(f"• ID_{len(context_data)} [{dt}] {m['username']}: {m['text']}\n  {link_tag}")
+                    context_data.append(f"• [{dt}] {m['username']}: {m['text']}\n  {link_tag}")
                     seen_ts.add(m['ts'])
         
         context_text = "\n\n".join(context_data)
@@ -171,7 +171,7 @@ def handle_ask_command(ack, respond, command):
         1. 事実確認: 「いつ」「誰が」「何を」を明確にする。
         2. 文脈把握: 議論の結論が出ていない場合は、その旨を伝える。
         3. センスの向上: 箇条書きを使い、上司が10秒で理解できる構造にする。
-        4. 証拠提示: 全ての主張に必ず url を添える。
+        4. 証拠提示: 証拠元があるものには主張にurlを添える。
 
          【Slack表示用・絶対禁止ルール】
         1. **（アスタリスク2つ）は禁止。太字は必ず *テキスト* （アスタリスク1つ）で囲んでください。

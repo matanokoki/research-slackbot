@@ -20,7 +20,7 @@ app = App(token=os.environ["SLACK_BOT_TOKEN"])
 def handle_summarize(ack, respond, command):
     user_input = command['text']
     channel_id = command['channel_id']
-    ack(f"🔍 「{user_input}」に関するログを詳しく探しています...")
+    ack(f"「{user_input}」に関するログを詳しく探しています...")
     user_token = os.environ["SLACK_USER_TOKEN"]
 
     try:
@@ -51,7 +51,7 @@ def handle_summarize(ack, respond, command):
             matches = search_res_raw.get('messages', {}).get('matches', [])
 
         if not matches:
-            respond(f"🔍 このチャンネル内に「{user_input}」に関連する話題は見つかりませんでした。")
+            respond(f"このチャンネル内に「{user_input}」に関連する話題は見つかりませんでした。")
             return
 
         # ログの整形（リンク付き・重複排除）

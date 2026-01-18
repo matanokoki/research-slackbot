@@ -21,8 +21,22 @@ SLACK_FORMAT_RULES = """
 2. #（シャープ）による見出しは禁止。見出しは *【見出し名】* のように太字で表現する。
 3. 表（テーブル記法）は禁止。必ず箇条書き（ • ）で書くこと。
 4. HTMLタグは絶対に入れない。
-5. リンクの書式 <https://...|[テキスト]> は絶対に変更しない。
+
+【引用・リンクに関する絶対ルール】
+★重要：提供された会話ログには <https://...|日付> の形式でリンクが含まれています。
+回答を作成する際は、このリンク情報を維持し、クリックすれば元の会話に飛べるようにしてください。
+（例：<https://slack.com/archives/...|01/24 10:00> 田中: 発言内容）
+
+【重要：リンクとメンションの扱い】
+提供されたログにある以下の形式は、そのまま出力に含めてください。
+・メンション: <@U...> （これはユーザー名として機能します）
+・リンク: <https://...|[元の会話を表示]>
 """
+
+def get_permalink(channel_id, ts):
+    """APIを使わず計算でリンクを生成（高速化）"""
+    ts_clean = ts.replace('.', '')
+    return f"https://slack.com/archives/{channel_id}/p{ts_clean}"
 
 def get_channel_context(user_token, channel_id, limit=100):
     """実行されたチャンネルの直近100件のログを確実に取得する"""
@@ -37,10 +51,22 @@ def get_channel_context(user_token, channel_id, limit=100):
         history_data = []
         for m in reversed(messages):
             if 'text' in m and m.get('subtype') is None:
+                # 1. 日時
                 dt = datetime.fromtimestamp(float(m['ts'])).strftime('%m/%d %H:%M')
-                # ユーザーIDを名前に変換するのは大変なので、一旦そのままか User と表記
-                user_name = m.get('user', 'User')
-                history_data.append(f"• [{dt}] {user_name}: {m['text']}")
+                
+                # 2. 名前（修正：メンション記法を使用）
+                # Slackクライアント側で勝手に名前に変換されるため、API呼び出し不要
+                user_id = m.get('user')
+                user_str = f"<@{user_id}>\n" if user_id else "User"
+
+                # 3. リンク（修正：指定のテキストでリンク化）
+                url = get_permalink(channel_id, m['ts'])
+                link_str = f"\n<{url}|[元の会話を表示]>"
+                
+                # 4. AIへの入力形式を作成
+                # 例: • 01/24 10:00 <@U12345>: こんにちは <https://...|[元の会話を表示]>
+                log_line = f"• {dt} {user_str}: {m['text']} {link_str}"
+                history_data.append(log_line)
         
         return "\n\n".join(history_data)
     except Exception as e:
@@ -80,7 +106,7 @@ def handle_summarize(ack, respond, command):
 def handle_ask_command(ack, respond, command):
     user_instruction = command['text']
     channel_id = command['channel_id']
-    ack(f"📝 「{user_instruction}」を分析中...")
+    ack(f"「{user_instruction}」を分析中...")
     user_token = os.environ["SLACK_USER_TOKEN"]
 
     try:
@@ -107,7 +133,7 @@ def handle_ask_command(ack, respond, command):
         """
 
         response = client_gemini.models.generate_content(model=CURRENT_MODEL, contents=final_prompt)
-        respond(f"✅ *分析結果:*\n\n{response.text}")
+        respond(f"*分析結果:*\n\n{response.text}")
 
     except Exception as e:
         respond(f"エラー: {str(e)}")
